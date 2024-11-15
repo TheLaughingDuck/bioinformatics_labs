@@ -1,0 +1,32 @@
+---
+title: "Lab 1 Q3"
+author: "Simon Jorstedt"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Q 3
+## Q 3.1
+**Caenorhabditis elegans** is a type of transparent worm, about 1mm in length. It has been extensively studied, and in 1998 it became the first animal for which the entire genome is sequenced. It is frequently used as a model organism in part because it is one of the simplest organisms with a nervous system.
+
+## Q 3.2
+We now use the BLAST tool to create a diagram over the arrangement of exons and introns in the genomic sequence that most matches one that is given to us, corresponding to a particular gene. The gene that most matches the provided is called "ced-9". The diagram is available [here](https://www.ncbi.nlm.nih.gov/gdv/browser/blast/?id=NC_003281.10&alignid=Query_4989535&rid=KENHS13S016).
+
+## Q 3.4
+The query sequence is found from position 10,335,160, to position 10,337,540 on the Chr III chromosome (NC_003281.10). The gene begins and ends at positions 10,335,172 and 10,337,522 respectively. Thus the query extends somewhat beyond the start and end of the gene.
+
+## Q 3.5
+Now we extract the exon codes
+
+
+## Q 3.6
+Find the gene!
+
+
+
