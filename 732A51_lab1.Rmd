@@ -1,0 +1,53 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-11-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1.1
+
+Let the proportion of allele A in the population be $P_0(A)=p$
+
+Let the proportion of allele a in the population be $P_0(a)=q$
+
+The probability of an offspring AA in the first generation should be $P_1(AA) = p \cdot p = p^2$
+
+The probability of an offspring aa in the first generation should be $P_1(aa) = q \cdot q = q^2$
+
+The probability of an offspring Aa in the first generation should be $P_1(Aa)  +P_1(aA)= p \cdot q + q\cdot p=2pq$
+
+The proportion of A in the first generation is therefore $P_1(A)= P_1(AA)+\frac{1}{2} P_1(Aa)=p^2+pq=p(p+q)=p$
+
+The proportion of A in the first generation is therefore $P_1(a)= P_1(aa)+\frac{1}{2} P_1(Aa)=q^2+pq=p(p+q)=q$
+
+Since $P_0(A) = P_1(A) = p$ and $P_0(a)=P_1(a) = q$ , the allelle proportion are the same between generation 0 and generation 1. This will also be true for every following generation, hence Hardy-Weinberg equlibrium is reached.
+
+## Question 1.2
+
+```{r}
+MM <- 357
+MN <- 485
+NN <- 158
+
+p <- (MM*2 + MN) / 2000
+q <- 1-p
+
+chisq.test(x = c(MM, MN, NN), p = c(p**2, 2*p*q, q**2))
+```
+
+Hence, it appears as though the population in a state of Hardy-Weinberg equilibrium. Chi-square-goodness-of-fit shows that we cannot reject the null-hypothesis that the population allelle distribution is as expected.
+
+## Question 2.1
+
+The organism in question is a Branchipus schaefferi, more commonly known as a fairy shrimp. The protein product of the CDS is named **cytochrome c oxidase subunit I**
+
+## Question 2.2
+
+```{r}
+Transeq <- "LLGDDQLYNVIVTAHAFVMIFFMVMPILIGGFGNWLVPLMLGAPDMAFPRLNNLSFWMLPPSLTLLVASSMVESGVGTGWTVYPPLSAAIAHAGPSVDLAIFSLHLAGISSILGAVNFITTVINMRPHSMSLDRMPLFAWAVVITAVLLLLSLPVLAX"
+GenBank <- "LLGDDQLYNVIVTAHAFVMIFFMVMPILIGGFGNWLVPLMLGAPDMAFPRLNNLSFWMLPPSLTLLVASSMVESGVGTGWTVYPPLSAAIAHAGPSVDLAIFSLHLAGISSILGAVNFITTVINMRPHSMSLDRMPLFAWAVVITAVLLLLSLPVLA"
+```
