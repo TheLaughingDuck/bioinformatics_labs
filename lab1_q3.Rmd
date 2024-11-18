@@ -13,20 +13,59 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Q 3
 ## Q 3.1
+*Read up on C. elegans and in a few sentences describe it and why it is such an important organism for the scienti c community.*
+
 **Caenorhabditis elegans** is a type of transparent worm, about 1mm in length. It has been extensively studied, and in 1998 it became the first animal for which the entire genome is sequenced. It is frequently used as a model organism in part because it is one of the simplest organisms with a nervous system.
 
 ## Q 3.2
-We now use the BLAST tool to create a diagram over the arrangement of exons and introns in the genomic sequence that most matches one that is given to us, corresponding to a particular gene. The gene that most matches the provided is called "ced-9". The diagram is available [here](https://www.ncbi.nlm.nih.gov/gdv/browser/blast/?id=NC_003281.10&alignid=Query_4989535&rid=KENHS13S016).
+*Use the nucleotide BLAST tool to construct a schematic diagram that shows the arrangement of introns and exons in the genomic sequence. In the [BLAST tool](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastSearch), choose database RefSeq Genome Database and remember that the species source of the genomic sequence is Caenorhabditis elegans. Use the GenomeDataViewer button. Alternatively you may use https://wormbase.org/tools/blast_blat.*
+
+We now use the BLAST tool to create a diagram over the arrangement of exons and introns in the genomic sequence that most matches one that is given to us, corresponding to a particular gene. The gene that most matches the provided is called "ced-9". The diagram is available at **[this link](https://www.ncbi.nlm.nih.gov/gdv/browser/blast/?id=NC_003281.10&alignid=Query_4989535&rid=KENHS13S016)**. The link tends to expire, so here is an image of the result:
+
+![Diagram]("diagram.png")
+
+## Q 3.3
+*How are the sequences numbered in the alignment (i.e., pairing of query and database sequences)? Are the directions the same? What would happen if you reverse complement your query sequence*
+
+The sequences appear to be numbered relative to the whole chromosome sequence on which the gene is found. The directions are the same. With a reverse complemented query sequence, we still obtain a match on the same gene, although the diagram indicates that the direction is opposite to the gene direction.
+
+![Diagram]("diagram2.png")
 
 ## Q 3.4
+*On what chromosome and what position is the query sequence found? At which position does the gene begin and end in your query sequence?*
+
 The query sequence is found from position 10,335,160, to position 10,337,540 on the Chr III chromosome (NC_003281.10). The gene begins and ends at positions 10,335,172 and 10,337,522 respectively. Thus the query extends somewhat beyond the start and end of the gene.
 
 ## Q 3.5
-Now we extract the exon codes
+*Extract the DNA code of each exon and using [transeq](https://www.ebi.ac.uk/Tools/st/emboss_transeq/) find the protein code of the gene. You can also use [blastx](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PROGRAM=blastx&PAGE_TYPE=BlastSearch&LINK_LOC=blasthome) or [blast_blat](https://wormbase.org/tools/blast_blat) to obtain protein sequences. How do they compare to your translation?*
 
+There are four exons in the gene, and using [the transeq tool](https://www.ebi.ac.uk/jdispatcher/st/emboss_backtranseq), we obtain their amino acid sequences (the proteins). We can then apparently simply append them, since the exons have the same directions. The protein code of the gene is thus:
+
+MTRCTADNSLTNPAYRRRTMATGEMKEFLGIKGTEPTDFGINSDAQDLPSPSRQASTRRM
+
+SIGESIDGKINDWEEPRLDIEGFV
+
+
+VDYFTHRIRQNGMEWFGAPGLPCGVQPEHEMMRVMGTIFEKKHAENFETFCEQLLAVPRI
+
+SFSLYQDVVRTVGNAQTDQCPMSYGRL
+
+
+IGLISFGGFVAAKMMESVELQGQVRNLFVYTSLFIKTRIRNNWKEHNRSW
+
+
+DDFMTLGKQMKEDYERAEAEKVGRRKQNRRWSMIGAGVTAGAIGIVGVVVCGRMMFSLK\*
+RIQFV\*IINLCTTPYI\*ISFLLTDSLIL\*TGRSGKARPQITALCVDLRFYCNFFRLPFFL
+AKPYFRVISTFPCSVHFVKNPETLTFLAVA\*PPASLPHFQSTPVSQ\*FIFTLTVSFRVAS
+SNSPQIPVRVRDFVFIFFKLFSLYNNKX
+
+When performing the search with blastx, we obtain a protein that seems to correspond to only the first exons protein sequence.
 
 ## Q 3.6
-Find the gene!
+*What gene is in the query sequence? Hovering over an exon you should see links to View GeneID and View WormBase. These point to pages with more information on the gene. Follow them and write a few sentences about the gene.*
+
+The gene is called ced-9. According to [Wormbase](https://wormbase.org/species/c_elegans/gene/WBGene00000423#0-9f-10), it enables GTPase activator activity and protein sequestering activity. There are Human ortholog genes that are involved in Alzheimers's disease, B-cell lymphoma, and other diseases.
+
 
 
 
