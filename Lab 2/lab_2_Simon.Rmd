@@ -22,7 +22,13 @@ lizards_accession_numbers <- c("JF806202", "HM161150", "FJ356743", "JF806205",
 
 lizards_sequences<-ape::read.GenBank(lizards_accession_numbers)
 print(lizards_sequences)
-ape::write.dna(lizards_sequences, file ="lizard_seqs.fasta", format = "fasta", append =FALSE, nbcol = 6, colsep = ":)", colw = 10)
+ape::write.dna(lizards_sequences,
+               file = "lizard_seqs.fasta", 
+               format = "fasta", 
+               append = FALSE, 
+               nbcol = 6,
+               colsep = " ", 
+               colw = 10)
 ```
 
 # Question 1
@@ -44,18 +50,13 @@ for (i in 1:33){
     collapse = "")
 }
 
-# Rename and save the sequences to a fasta file
-#names(sim_sequences) <- lizards_accession_numbers
-#ape::write.dna(x=sim_sequences, file="simulated_sequences.fasta", format = "fasta", nbcol = 6, colsep = " ", colw = 10)
+# Rename, convert to DNAbin, and save the sequences to a fasta file
+names(sim_sequences) <- lizards_accession_numbers
+sim_sequences <- as.DNAbin(sapply(sim_sequences, strsplit, split = ""))
 
 ape::write.dna(sim_sequences,
                file ="simulated_sequences.fasta",
-               format = "fasta",
-               append =FALSE,
-               nbcol = 10, 
-               colsep = " ", 
-               colw = 10000)
-#due to ape bug, set colw to longer than the longest sequence
+               format = "fasta")
 ```
 
 The base composition of the respective simulated sequences will be roughly the same as the true base compositions, due to the law of large numbers. Example:
@@ -65,7 +66,7 @@ The base composition of the respective simulated sequences will be roughly the s
 base.freq(lizards_sequences[1])
 
 # Base frequences of the first simulated sequence
-(strsplit(sim_sequences[[1]], split = "")[[1]] %>% table())/nchar(sim_sequences[[1]])
+base.freq(sim_sequences[1])
 ```
 
 # Question 2
