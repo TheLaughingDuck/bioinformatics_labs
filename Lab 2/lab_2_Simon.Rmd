@@ -71,6 +71,38 @@ base.freq(sim_sequences[1])
 
 # Question 2
 ## Q 2.1
+*Report some basic statistics on each sequence dataset: individual base composition, GC content, CG, AT content. Also translate your sequences into protein sequences (see Lab 1) and report on the amino acid composition. In your simulated sequences, how many times did you observe a stop codon inside your sequence? Does this occur in your true sequences? Comment.*
+
+Clarification:: GC content, CpG content, ApT content.
+
+```{r}
+# Create empty dataframe
+df_base_stats <- data.frame(Accession=character(),
+                            GC_cont=numeric(),
+                            CpG_cont=numeric(),
+                            ApT_cont=numeric())
+
+
+for(i in 1:33){
+  # GC content
+  gc_cont <- base.freq(lizards_sequences[1])[c(2,3)] %>% sum()
+  
+  # CpG and ApT contents
+  dna_string <- as.character(lizards_sequences)[[i]] %>% paste(collapse = "")
+  CpG_cont <- gregexpr(pattern="cg", text=dna_string)[[1]] %>% length() %>% {2*./nchar(dna_string)}
+  ApT_cont <- gregexpr(pattern="at", text=dna_string)[[1]] %>% length() %>% {2*./nchar(dna_string)}
+  
+  # Store values
+  new_row <- data.frame(Accession=lizards_accession_numbers[i],
+                        GC_cont=gc_cont,
+                        CpG_cont=CpG_cont,
+                        ApT_cont=ApT_cont)
+  
+  df_base_stats <- rbind(df_base_stats, new_row)
+}
+
+df_base_stats
+```
 
 
 
