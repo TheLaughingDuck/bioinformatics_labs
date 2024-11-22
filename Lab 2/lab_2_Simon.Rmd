@@ -9,6 +9,8 @@ output: pdf_document
 # Dependencies and data
 library(ape)
 library(dplyr)
+library(msa)
+library(seqinr)
 
 lizards_accession_numbers <- c("JF806202", "HM161150", "FJ356743", "JF806205", 
                                "JQ073190", "GU457971", "FJ356741", "JF806207",
@@ -203,10 +205,76 @@ print(liz_seq_n_stopcodons)
 #  gregexpr(pattern="taa", text=.) %>% unlist()
 ```
 
+```{r}
+# Write lizard proteins in a fasta
+ape::write.dna(lizard_proteins,
+               file = "lizard_proteins.fasta",
+               format = "fasta", 
+               append = FALSE, 
+               nbcol = 6,
+               colsep = "", 
+               colw = 10)
+
+# True lizard protein alignment heatmap
+readAAStringSet(filepath = "lizard_proteins.fasta") %>%
+  msa() %>%
+  msaConvert(., type="seqinr::alignment") %>%
+  dist.alignment(., "identity") %>%
+  as.matrix(.) %>%
+  heatmap()
+
+
+# Write simulated proteins in a fasta
+ape::write.dna(sim_proteins,
+               file = "sim_proteins.fasta",
+               format = "fasta", 
+               append = FALSE, 
+               nbcol = 6,
+               colsep = "", 
+               colw = 10)
+
+# Simulated protein alignment heatmap
+readAAStringSet(filepath = "sim_proteins.fasta") %>%
+  msa() %>%
+  msaConvert(., type="seqinr::alignment") %>%
+  dist.alignment(., "identity") %>%
+  as.matrix(.) %>%
+  heatmap()
+```
+
+
+```{r}
+#mySequenceFile <- system.file("examples", file="lizard_proteins.fasta", package="msa")
+#mySequences <- readAAStringSet(filepath = "lizard_proteins.fasta")
+#alignment <- msa(mySequences)
 
 
 
 
+#hemoAln2 <- msaConvert(alignment, type="seqinr::alignment")
+#d <- dist.alignment(hemoAln2, "identity")
+#as.matrix(d)[1:33, drop=FALSE]
+#heatmap(as.matrix(d))
+```
+
+
+```{r}
+# Write lizard proteins in a fasta
+ape::write.dna(sim_proteins,
+               file = "sim_proteins.fasta",
+               format = "fasta", 
+               append = FALSE, 
+               nbcol = 6,
+               colsep = " ", 
+               colw = 10)
+
+readAAStringSet(filepath = "sim_proteins.fasta") %>%
+  msa() %>%
+  msaConvert(., type="seqinr::alignment") %>%
+  dist.alignment(., "identity") %>%
+  as.matrix(.) %>%
+  heatmap()
+```
 
 
 
