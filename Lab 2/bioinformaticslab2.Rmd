@@ -1,0 +1,169 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-11-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Question 1.1
+
+```{r}
+library(ape)
+## Gene bank accession numbers taken from http://www.jcsantosresearch.org/Class_2014_Spring_Comparative/pdf/week_2/Jan_13_15_2015_GenBank_part_2.pdf
+
+lizards_accession_numbers <- c("JF806202", "HM161150", "FJ356743", "JF806205", 
+                               "JQ073190", "GU457971", "FJ356741", "JF806207",
+                               "JF806210", "AY662592", "AY662591", "FJ356748",       
+                               "JN112660", "AY662594", "JN112661", "HQ876437", 
+                               "HQ876434", "AY662590", "FJ356740", "JF806214", 
+                               "JQ073188", "FJ356749", "JQ073189", "JF806216", 
+                               "AY662598", "JN112653", "JF806204", "FJ356747", 
+                               "FJ356744", "HQ876440", "JN112651", "JF806215",
+                               "JF806209") 
+lizards_sequences<-ape::read.GenBank(lizards_accession_numbers)
+
+#Save original sequences as FASTA
+ape::write.dna(lizards_sequences, file ="lizard_seqs.fasta", format = "fasta", append =FALSE, nbcol = 6, colsep = " ", colw = 10)
+
+#Reads previously saved FASTA-file
+library(seqinr)
+lizard_seq_seqinr_format <- read.fasta(file = "lizard_seqs.fasta", seqtype = "DNA",
+                                       as.string = TRUE, forceDNAtolower = FALSE)
+
+#Calculates a vector of probabilities for each nucleotide
+distr <- table(unlist(sapply(lizard_seq_seqinr_format, function(x) strsplit(x,split = ""))))
+distr <- distr[names(distr) != " "]/sum(distr[names(distr) != " "])
+
+
+#Simulating a lizard dataset using same distributions of nucleotides
+lizard_sim <- list()
+
+for(l in sapply(lizards_sequences, length)){
+  n_left <- l
+  seqname <- paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = "")
+  lizard_sim[[seqname]] <- sample(names(distr), l, replace = T, prob = distr)
+}
+
+#Saving simulated sequences as FASTA
+ape::write.dna(as.DNAbin(lizard_sim), file ="lizard_seqs_sim.fasta", format = "fasta", append =FALSE, nbcol = 6, colsep = " ", colw = 10)
+
+
+print(lizards_sequences)
+print(as.DNAbin(lizard_sim))
+```
+
+The base composition in the simulated data is similar to the original one.
+
+# Question 1.2
+
+```{r}
+#Simulating a random 33 branch tree
+sim_tree <- rtree(33)
+
+for(l in sapply(lizards_sequences, length)){
+  n_left <- l
+  seqname <- paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = "")
+  lizard_sim[[seqname]] <- sample(names(distr), l, replace = T, prob = distr)
+}
+
+sim_tree$tip.label <- sapply(sim_tree$tip.label, function(x) paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = ""))
+
+plot(sim_tree)
+
+#Re-using the distribution of nucleotide probabilites
+acgt <- distr[c("a","c","g","t")] / sum(distr[c("a","c","g","t")])
+
+#Creating a F81-model Q-matrix, where every column is the corresponding nucleotides occurence rate and each row should sum up to 0
+Q <- rbind(acgt,acgt,acgt,acgt)
+Q[1,1] <- -sum(Q[1,2:4])
+Q[2,2] <- -sum(Q[2,c(1,3:4)])
+Q[3,3] <- -sum(Q[3,c(1:2,4)])
+Q[4,4] <- -sum(Q[4,c(1:3)])
+
+rownames(Q) <- toupper(colnames(Q))
+colnames(Q) <- toupper(colnames(Q))
+
+#Replicating the sequences lengths of the original dataset
+slengths <- sapply(lizards_sequences, length)
+
+#For every of the 33 sequencse...
+sims <- lapply(1:33, function(x){
+  #Simulate a tree with the correponding sequence name
+  #Extract the sequence of the same index x
+  simSeq(sim_tree, l= slengths[x], Q)[x][[1]]
+})
+
+#Converting to nucleotide characters
+lizard_sim2 <- lapply(sims, function(x){
+  temp_seq <- factor(x)
+  levels(temp_seq) <- c("a","c","g","t")
+  return(as.character(temp_seq))
+})
+names(lizard_sim2) <- sim_tree$tip.label
+as.DNAbin(lizard_sim2)
+
+#Saving simulated sequences as FASTA
+ape::write.dna(as.DNAbin(lizard_sim2), file ="lizard_seqs_sim2.fasta", format = "fasta", append =FALSE, nbcol = 6, colsep = " ", colw = 10)
+```
+
+# Question 2.1
+
+```{r}
+
+full_sim_seq <- unlist(lizard_sim)
+sum(table(full_sim_seq[full_sim_seq %in% c("g","c") ])) / length(full_sim_seq)
+sum(table(full_sim_seq[full_sim_seq %in% c("a","t") ])) / length(full_sim_seq)
+
+CG_count <- 0
+for(i in names(lizard_sim)){
+  indices <- which(lizard_sim[[i]] == "c") + 1
+  CG_count <- CG_count + sum(lizard_sim[[i]][indices] == "g", na.rm = T)
+}
+
+print(CG_count/length(full_sim_seq))
+
+sum(sapply(read.fasta("lizard_sim_protein.out"),function(x) table(x)[1]))
+
+
+
+
+
+sum(sapply(read.fasta("lizard_protein.out"),function(x) table(x)[1]))
+```
+
+# Question 2.3
+
+```{r}
+org_seq_aligned <- ape::clustal(lizards_sequences, exec = '"C:/Program Files (x86)/ClustalW2/clustalw2.exe"')
+sim_seq_aligned <- ape::clustal(as.DNAbin(lizard_sim), exec = '"C:/Program Files (x86)/ClustalW2/clustalw2.exe"')
+
+org_seq_dist <- dist.dna(org_seq_aligned, model = "raw") 
+sim_seq_dist <- dist.dna(sim_seq_aligned, model = "raw")
+
+heatmap(x = as.matrix(org_seq_dist))
+heatmap(x = as.matrix(sim_seq_dist))
+```
+
+# Question 3.1
+
+```{r}
+tree_nj <- nj(org_seq_dist)
+plot(tree_nj)
+
+
+tree_nj2 <- nj(sim_seq_dist)
+plot(tree_nj2)
+
+
+
+org_phydat <- as.phyDat(org_seq_aligned)
+orgUPGMA <- upgma(dist.ml(org_phydat))
+plot(orgUPGMA)
+
+
+bs_orgUPGMA <- bootstrap.phyDat(org_phydat,  function(x) upgma(dist.ml(x)), bs = 40)
+plotBS(orgUPGMA, bs_orgUPGMA)
+```
