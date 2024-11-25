@@ -61,15 +61,17 @@ The base composition in the simulated data is similar to the original one.
 
 ```{r}
 #Simulating a random 33 branch tree
-sim_tree <- rtree(33)
+sim_tree <- rtree(33, tip.label = lizard_accession_numbers)
 
-for(l in sapply(lizards_sequences, length)){
-  n_left <- l
-  seqname <- paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = "")
-  lizard_sim[[seqname]] <- sample(names(distr), l, replace = T, prob = distr)
-}
+#for(l in sapply(lizards_sequences, length)){
+#  n_left <- l
+#  seqname <- paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = "")
+#  lizard_sim[[seqname]] <- sample(names(distr), l, replace = T, prob = distr)
+#}
 
-sim_tree$tip.label <- sapply(sim_tree$tip.label, function(x) paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = ""))
+#sim_tree$tip.label <- sapply(sim_tree$tip.label, function(x) paste0(c(sample(LETTERS,2), sample(0:9,6)), collapse = ""))
+
+sim_tree$tip.label <- lizard_accession_numbers
 
 plot(sim_tree)
 

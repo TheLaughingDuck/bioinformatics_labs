@@ -35,7 +35,9 @@ ape::write.dna(lizards_sequences,
 
 # Question 1
 ## Q 1.1
-*Simulate an artificial DNA sequence dataset. It should contain 33 sequences. The lengths of the sequences should be the same as in the lizard dataset, i.e. for each real sequence simulate an arti cial one. The simulation rule is as follows, each nucleotide is to be independently and randomly drawn from the distribution given by the base composition (frequencies) in the true lizard sequences. Save your dataset in a fasta format le. Remember to give unique names to your sequences. Report on the base composition in your simulated data.*
+*Simulate an artificial DNA sequence dataset. It should contain 33 sequences. The lengths of the sequences should be the same as in the lizard dataset, i.e. for each real sequence simulate an artifcial one. The simulation rule is as follows, each nucleotide is to be independently and randomly drawn from the distribution given by the base composition (frequencies) in the true lizard sequences. Save your dataset in a fasta format le. Remember to give unique names to your sequences. Report on the base composition in your simulated data.*
+
+Below we simulate 33 sequences, based on the true base composition and sequence lengths of the original sequences. We take the unique names from the corresponding sequences. The base compositions of the entire combined true, and simulated sequences respectively is reported below.
 
 ```{r}
 set.seed(8182746)
@@ -63,14 +65,59 @@ ape::write.dna(sim_sequences,
                format = "fasta")
 ```
 
-The base composition of the respective simulated sequences will be roughly the same as the true base compositions, due to the law of large numbers. Example:
 
 ```{r}
 # Base frequences of the first real sequence
-base.freq(lizards_sequences[1])
+base.freq(lizards_sequences)
 
 # Base frequences of the first simulated sequence
-base.freq(sim_sequences[1])
+base.freq(sim_sequences)
+```
+
+## Q 1.2
+Below we simulate and plot a phylo tree. Then we create a Q-matrix, and then simulate sequences using the Simseq function on the simulated tree. Below that we report the base frequencies in all sequences. We find that it appears to have a uniform distribution over the bases, unlike the true sequences, where for example the "a" base is the most common.
+
+```{r}
+sim_tree <- rtree(33, tip.label = lizards_accession_numbers)
+
+plot(sim_tree)
+
+
+#Re-using the distribution of nucleotide probabilites
+acgt <- base.freq(lizards_sequences)
+#acgt <- distr[c("a","c","g","t")] / sum(distr[c("a","c","g","t")])
+
+#Creating a F81-model Q-matrix, where every column is the corresponding nucleotides occurence rate and each row should sum up to 0
+Q <- rbind(acgt,acgt,acgt,acgt)
+Q[1,1] <- -sum(Q[1,2:4])
+Q[2,2] <- -sum(Q[2,c(1,3:4)])
+Q[3,3] <- -sum(Q[3,c(1:2,4)])
+Q[4,4] <- -sum(Q[4,c(1:3)])
+
+rownames(Q) <- toupper(colnames(Q))
+colnames(Q) <- toupper(colnames(Q))
+
+#Replicating the sequences lengths of the original dataset
+slengths <- sapply(lizards_sequences, length)
+
+#For every of the 33 sequencse...
+sims <- lapply(1:33, function(x){
+  #Simulate a tree with the correponding sequence name
+  #Extract the sequence of the same index x
+  simSeq(sim_tree, l= slengths[x], Q)[x][[1]]
+})
+
+#Converting to nucleotide characters
+lizard_sim2 <- lapply(sims, function(x){
+  temp_seq <- factor(x)
+  levels(temp_seq) <- c("a","c","g","t")
+  return(as.character(temp_seq))
+})
+names(lizard_sim2) <- sim_tree$tip.label
+as.DNAbin(lizard_sim2)
+
+#Saving simulated sequences as FASTA
+ape::write.dna(as.DNAbin(lizard_sim2), file ="lizard_seqs_sim2.fasta", format = "fasta", append =FALSE, nbcol = 6, colsep = " ", colw = 10)
 ```
 
 # Question 2
@@ -78,32 +125,29 @@ base.freq(sim_sequences[1])
 *Report some basic statistics on each sequence dataset: individual base composition, GC content, CpG, ApT content. Also translate your sequences into protein sequences (see Lab 1) and report on the amino acid composition. In your simulated sequences, how many times did you observe a stop codon inside your sequence? Does this occur in your true sequences? Comment.*
 
 ```{r}
-# Create empty dataframe
-df_base_stats <- data.frame(Accession=character(),
-                            GC_cont=numeric(),
-                            CpG_cont=numeric(),
-                            ApT_cont=numeric())
+# Find GC content
+cat("True dataset gc content:", base.freq(lizards_sequences)[c(2,3)] %>% sum(), "\n")
+cat("Simulated dataset gc content:", base.freq(sim_sequences)[c(2,3)] %>% sum(), "\n")
+cat("\n")
 
-
+# Find CpG content and find ApT content
+concatenated_dna_true <- ""
+concatenated_dna_sim <- ""
 for(i in 1:33){
-  # GC content
-  gc_cont <- base.freq(lizards_sequences[1])[c(2,3)] %>% sum()
-  
-  # CpG and ApT contents
-  dna_string <- as.character(lizards_sequences)[[i]] %>% paste(collapse = "")
-  CpG_cont <- gregexpr(pattern="cg", text=dna_string)[[1]] %>% length() %>% {2*./nchar(dna_string)}
-  ApT_cont <- gregexpr(pattern="at", text=dna_string)[[1]] %>% length() %>% {2*./nchar(dna_string)}
-  
-  # Store values
-  new_row <- data.frame(Accession=lizards_accession_numbers[i],
-                        GC_cont=gc_cont,
-                        CpG_cont=CpG_cont,
-                        ApT_cont=ApT_cont)
-  
-  df_base_stats <- rbind(df_base_stats, new_row)
+  concatenated_dna_true <- paste0(concatenated_dna_true, as.character(lizards_sequences)[[i]] %>% paste(collapse = ""))
+  concatenated_dna_sim <- paste0(concatenated_dna_sim, as.character(sim_sequences)[[i]] %>% paste(collapse = ""))
 }
 
-df_base_stats
+gregexpr(pattern="cg", text=concatenated_dna_true)[[1]] %>% length() %>% {2*./nchar(concatenated_dna_true)} %>% cat("True CpG content:", ., "\n")
+gregexpr(pattern="cg", text=concatenated_dna_sim)[[1]] %>% length() %>% {2*./nchar(concatenated_dna_sim)} %>% cat("Simulated CpG content:", ., "\n")
+
+cat("\n")
+
+gregexpr(pattern="at", text=concatenated_dna_true)[[1]] %>% length() %>% {2*./nchar(concatenated_dna_true)} %>% cat("True ApT content:", ., "\n")
+gregexpr(pattern="at", text=concatenated_dna_sim)[[1]] %>% length() %>% {2*./nchar(concatenated_dna_sim)} %>% cat("Simulated ApT content:", ., "\n")
+
+
+# Find number of stop codons
 ```
 
 We will now translate the sequences to proteins.
@@ -149,7 +193,8 @@ for(i in 1:33){
 }
 ```
 
-Now we will count how many times the stop codons (taa, tag, tga) occur in the respective sequences. Because the simulated sequences are random, the stop codons will occur frequently.
+Now we will count how many times the stop codons (taa, tag, tga) occur in the respective sequences. Because the simulated sequences are random, the stop codons will occur frequently, and in fact they occur more frequently than in the true sequences across the board. Below we find that the stop codon frequencies roughly match between the true and simulated sequences for all sequences.
+
 ```{r, message=FALSE}
 # Positions of stop codons in simulated sequence (example)
 
@@ -194,18 +239,22 @@ for(i in 1:33){
   
   liz_seq_n_stopcodons <- c(liz_seq_n_stopcodons, n_taa+n_tag+n_tga)
 }
-print(sim_seq_n_stopcodons)
-print(liz_seq_n_stopcodons)
 
-#cat("Number of stop codons in simulated sequences:\n", sim_seq_n_stopcodons, "\n")
-#cat("Number of stop codons in true sequences:\n", liz_seq_n_stopcodons, "\n")
+#print(liz_seq_n_stopcodons)
+#print(sim_seq_n_stopcodons)
+
+cat("Number of stop codons in true sequences:\n", liz_seq_n_stopcodons, "\n")
+cat("Number of stop codons in simulated sequences:\n", sim_seq_n_stopcodons, "\n")
 
 # Positions of stop codons in true sequenes
 #as.character(lizards_sequences)[[1]] %>% paste(collapse = "") %>%
 #  gregexpr(pattern="taa", text=.) %>% unlist()
 ```
 
-```{r}
+## Q 2.3
+Below we generate protein alignment heatmaps for the true and simulated datasets (converted to proteins) respectively. The distance measure used is the square root of the number of mismatching positions, effectively the square root of the Hamming distance. We find that there are many similarities between the true sequences, which makes sense, because they all describe lizards. In the simulated heatmap on the other hand, there is no (or very low) similarity between the sequences, which makes sense, since they are random.
+
+```{r, message=FALSE}
 # Write lizard proteins in a fasta
 ape::write.dna(lizard_proteins,
                file = "lizard_proteins.fasta",
@@ -243,40 +292,42 @@ readAAStringSet(filepath = "sim_proteins.fasta") %>%
 ```
 
 
-```{r}
-#mySequenceFile <- system.file("examples", file="lizard_proteins.fasta", package="msa")
-#mySequences <- readAAStringSet(filepath = "lizard_proteins.fasta")
-#alignment <- msa(mySequences)
 
+# Q3 Phylogeny reconstruction
+## Q 3.1
 
+```{r, message=FALSE}
+org_seq_aligned <- ape::clustal(lizards_sequences, exec = '"C:/Program Files (x86)/ClustalW2/clustalw2.exe"')
 
+sim_seq_aligned <- readDNAStringSet(filepath = "lizard_seqs.fasta") %>%
+  msa() %>%
+  msaConvert(., type="phangorn::phyDat")
 
-#hemoAln2 <- msaConvert(alignment, type="seqinr::alignment")
-#d <- dist.alignment(hemoAln2, "identity")
-#as.matrix(d)[1:33, drop=FALSE]
-#heatmap(as.matrix(d))
-```
-
-
-```{r}
-# Write lizard proteins in a fasta
-ape::write.dna(sim_proteins,
-               file = "sim_proteins.fasta",
-               format = "fasta", 
-               append = FALSE, 
-               nbcol = 6,
-               colsep = " ", 
-               colw = 10)
+readAAStringSet(filepath = "lizard_proteins.fasta") %>%
+  msa() %>%
+  msaConvert(., type="seqinr::alignment") %>%
+  dist.alignment(., "identity") %>%
+  as.matrix(.) %>%
+  njs(.) %>%
+  plot(.)
 
 readAAStringSet(filepath = "sim_proteins.fasta") %>%
   msa() %>%
   msaConvert(., type="seqinr::alignment") %>%
   dist.alignment(., "identity") %>%
   as.matrix(.) %>%
-  heatmap()
+  njs(.) %>%
+  plot(.)
+
+
+org_phydat <- as.phyDat(org_seq_aligned)
+orgUPGMA <- upgma(dist.ml(org_phydat))
+plot(orgUPGMA)
+
+
+bs_orgUPGMA <- bootstrap.phyDat(org_phydat,  function(x) upgma(dist.ml(x)), bs = 40)
+plotBS(orgUPGMA, bs_orgUPGMA)
 ```
-
-
 
 
 
