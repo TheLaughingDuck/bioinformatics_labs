@@ -299,17 +299,15 @@ readAAStringSet(filepath = "sim_proteins.fasta") %>%
 ```{r, message=FALSE}
 org_seq_aligned <- ape::clustal(lizards_sequences, exec = '"C:/Program Files (x86)/ClustalW2/clustalw2.exe"')
 
-sim_seq_aligned <- readDNAStringSet(filepath = "lizard_seqs.fasta") %>%
-  msa() %>%
+sim_seq_aligned <- msa("lizard_seq.fasta") %>%
   msaConvert(., type="phangorn::phyDat")
 
-readAAStringSet(filepath = "lizard_proteins.fasta") %>%
-  msa() %>%
+
+  msa(inputSeqs = "lizard_seqs.fasta") %>%
   msaConvert(., type="seqinr::alignment") %>%
   dist.alignment(., "identity") %>%
   as.matrix(.) %>%
-  njs(.) %>%
-  plot(.)
+  njs(.)
 
 readAAStringSet(filepath = "sim_proteins.fasta") %>%
   msa() %>%
