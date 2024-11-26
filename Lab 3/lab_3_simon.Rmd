@@ -1,0 +1,45 @@
+---
+title: "Lab 3"
+author: "Simon Jorstedt"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+library(ade4)
+library(ape)
+library(dplyr)
+library(magrittr)
+
+data(carni70)
+```
+
+# Q 2
+## Q 2.2
+The `carni70` dataset describes the phylogeny, as well as geographic range (km) and body size (kg) of 70 carnivorous animals. In Figure 1 and 2 below we find that a majority of the animals are relatively small/light (under 10kg), with some outliers in the 20-50 kg range, and just two in the range of 200-260 kg range. Most of the animals belong to either a cluster with low range (up to about 7 km), or a cluster with longer range (around 12-27 km). In Figure 3 we see a phylogenetic tree of the animals
+
+```{r}
+# Plot the range vs the size
+plot(carni70$tab$size, carni70$tab$range,
+     xlab="Body size (kg)", 
+     ylab="Geographical range (km)",
+     main="Fig. 1: Geographical range vs body size")
+
+
+# Plot range vs size of small animals
+small_carni <- carni70$tab %>% 
+  filter(size < 50)
+
+plot(small_carni$size, small_carni$range,
+     xlab="Body size (kg)", 
+     ylab="Geographical range (km)",
+     main="Fig. 2: Geographical range vs body size of small animals (< 50kg)",
+     xlim = c(0,50))
+
+
+# Plot the phylogeny
+carni_tree <- ape::read.tree(text = carni70$tre)
+plot(carni_tree, type="fan",
+     main="Fig. 3: Species phylogeny")
+```
+
