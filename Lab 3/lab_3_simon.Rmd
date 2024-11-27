@@ -10,12 +10,16 @@ library(ade4)
 library(ape)
 library(dplyr)
 library(magrittr)
+library(mvMORPH)
+library(mvSLOUCH)
 
 data(carni70)
 ```
 
 # Q 2
-## Q 2.2
+## Q 2.1
+*Explore the data set and report what can be found in it. Provide some plots*
+
 The `carni70` dataset describes the phylogeny, as well as geographic range (km) and body size (kg) of 70 carnivorous animals. In Figure 1 and 2 below we find that a majority of the animals are relatively small/light (under 10kg), with some outliers in the 20-50 kg range, and just two in the range of 200-260 kg range. Most of the animals belong to either a cluster with low range (up to about 7 km), or a cluster with longer range (around 12-27 km). In Figure 3 we see a phylogenetic tree of the animals
 
 ```{r}
@@ -41,5 +45,37 @@ plot(small_carni$size, small_carni$range,
 carni_tree <- ape::read.tree(text = carni70$tre)
 plot(carni_tree, type="fan",
      main="Fig. 3: Species phylogeny")
+
+# Change carni70 names, since names are separated with "." in the tree
+rownames(carni70$tab) <- gsub("_", replacement = ".", rownames(carni70$tab))
 ```
+
+## Q 2.2
+*Analyze the two traits (size and range) with a number of different phylogenetic comparative models. Look at the R packages ape, mvMORPH, mvSLOUCH, ouch and slouch (the last one is NOT on CRAN and can be downloaded from https://github.com/kopperud/slouch). Analyze the data under the following models...*
+
+```{r}
+# Both traits evolving as independent Brownian motions (not correct right now?)
+#mvMORPH::mvBM(carni_tree, data = carni70$tab, model="BM1")
+# maybe we just need to run it separately for the two features?
+
+# The traits evolve as a correlated Brownian motion (not correct right now)
+#mvMORPH::mvBM(carni_tree, data = carni70$tab, model="BMM")
+
+# Both traits evolving as independent Ornstein-Uhlenbeck processes
+#mvMORPH::mvOU()
+
+# Traits evolving as bivariate Ornstein-Uhlenbeck process
+#mvMORPH::mvOU()
+
+
+#mvSLOUCH::mvslouchModel()
+```
+
+
+
+
+
+
+
+
 
