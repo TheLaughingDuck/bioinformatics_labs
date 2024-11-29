@@ -51,30 +51,75 @@ rownames(carni70$tab) <- gsub("_", replacement = ".", rownames(carni70$tab))
 ```
 
 ## Q 2.2
-*Analyze the two traits (size and range) with a number of different phylogenetic comparative models. Look at the R packages ape, mvMORPH, mvSLOUCH, ouch and slouch (the last one is NOT on CRAN and can be downloaded from https://github.com/kopperud/slouch). Analyze the data under the following models...*
+*Analyze the two traits (size and range) with a number of different phylogenetic comparative models. Look at the R packages ape, mvMORPH, mvSLOUCH, ouch and slouch (the last one is NOT on CRAN and can be downloaded from https://github.com/kopperud/slouch). We will analyse the data under five different models, described in the code chunk below.*
+
+Below we train the models, and then take some interesting results (mainly the loglikelihood and AIC scores) and display them in a dataframe. We find that both the Brownian motion models are practically  the same, while the two Ornstein-Uhlenbeck models are slightly better, and about as good as the mixed model. There is a bit of random variation in the convergences, so it is unclear and ambiguous which model is the best, but it will be either the dependent OU model, or the mixed model.
 
 ```{r}
-# Both traits evolving as independent Brownian motions (not correct right now?)
-#mvMORPH::mvBM(carni_tree, data = carni70$tab, model="BM1")
-# maybe we just need to run it separately for the two features?
+# Both traits evolving as independent Brownian motions
+bm_indep <- mvMORPH::mvBM(carni_tree,
+                          data = carni70$tab,
+                          model="BM1",
+                          param = list(constaint="diagonal"))
 
-# The traits evolve as a correlated Brownian motion (not correct right now)
-#mvMORPH::mvBM(carni_tree, data = carni70$tab, model="BMM")
+# The traits evolve as a correlated Brownian motion
+bm_dep <- mvMORPH::mvBM(carni_tree,
+                        data = carni70$tab, 
+                        model="BM1")
 
 # Both traits evolving as independent Ornstein-Uhlenbeck processes
-#mvMORPH::mvOU()
+ou_indep <- mvMORPH::mvOU(carni_tree,
+                          data=carni70$tab,
+                          model="OU1",
+                          param = list(constaint="diagonal"))
 
 # Traits evolving as bivariate Ornstein-Uhlenbeck process
-#mvMORPH::mvOU()
+ou_dep <- mvMORPH::mvOU(carni_tree,
+                        data=carni70$tab,
+                        model="OU1")
 
+mixed_mod <- mvSLOUCH::mvslouchModel(carni_tree,
+                        as.matrix(carni70$tab[c(2,1)]),
+                        kY=1)
 
-#mvSLOUCH::mvslouchModel()
+# mvSLOUCH is an... interesting package
+if (mixed_mod$MaxLikFound == "Same as final found"){
+  mixed_mod$MaxLikFound <- mixed_mod$FinalFound 
+}
+
+# Format results of the analyses
+list("BM indep"=c(bm_indep$LogLik,
+                  bm_indep$AIC,
+                  bm_indep$AICc,
+                  bm_indep$convergence,
+                  bm_indep$hess.values),
+     
+     "BM dep"=c(bm_dep$LogLik,
+                bm_dep$AIC,
+                bm_dep$AICc,
+                bm_dep$convergence,
+                bm_dep$hess.values),
+     
+     "OU indep"=c(ou_indep$LogLik,
+                  ou_indep$AIC,
+                  ou_indep$AICc,
+                  ou_indep$convergence,
+                  ou_indep$hess.values),
+     
+     "OU dep"=c(ou_dep$LogLik,
+                ou_dep$AIC,
+                ou_dep$AICc,
+                ou_dep$convergence,
+                ou_dep$hess.values),
+     
+     "Mixed"=c(mixed_mod$MaxLikFound$LogLik,
+               mixed_mod$MaxLikFound$ParamSummary$aic,
+               mixed_mod$MaxLikFound$ParamSummary$aic.c,
+               NA,
+               NA)) %>%
+  do.call(rbind, .) %>%
+  set_colnames(c("LogLikelihood", "AIC", "AICc", "convergence", "hess.values"))
 ```
-
-
-
-
-
 
 
 
