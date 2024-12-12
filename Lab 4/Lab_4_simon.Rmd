@@ -1,0 +1,102 @@
+---
+title: "lab 4"
+author: "Simon Jorstedt"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+# Question 1
+*Run all the R code and reproduce the graphics. Go carefully through the R code and explain in your words what each step does. HINT Recall what a design/model matrix is from linear regression*
+
+```{r Setup, message=FALSE, include=FALSE}
+## ----style, echo = FALSE, results = 'asis'--------------------------------------------------------
+BiocStyle::markdown()
+options(width=100, max.print=1000)
+knitr::opts_chunk$set(
+    eval=as.logical(Sys.getenv("KNITR_EVAL", "TRUE")),
+    cache=as.logical(Sys.getenv("KNITR_CACHE", "TRUE")))
+
+## ----setup, echo=FALSE, messages=FALSE, warnings=FALSE--------------------------------------------
+suppressPackageStartupMessages({
+    library(airway)
+    library(DESeq2)
+    library(ggplot2)
+    library(org.Hs.eg.db)
+})
+
+## ----configure-test-------------------------------------------------------------------------------
+#stopifnot(
+#    getRversion() >= '3.2' && getRversion() < '3.3',
+#    BiocInstaller::biocVersion() == "3.2"
+#)
+```
+
+This chunk gives an initial look at the dataset `airway`, which provides expression values in genes on four human airway muscle cell lines treated with a compound. We see that the data is organised as a matrix or assay with 63677 genes along the rows, and 8 different experiments along the columns. What follows below is a section of the assay,
+
+```{r airway_experiment}
+## ----airway-SummarizedExperiment------------------------------------------------------------------
+library(airway)         # An 'ExperimentData' package...
+data(airway)            # ...with a sample data set...
+airway                  # ...that is a SummarizedExperiment
+head(assay(airway))     # contains a matrix of counts
+head(rowRanges(airway)) # information about the genes...
+colData(airway)[, 1:3]  # ...and samples
+## coordinated subsetting
+untrt <- airway[, airway$dex == 'untrt']
+head(assay(untrt))
+colData(untrt)[, 1:3]
+
+## ----airway-colData-------------------------------------------------------------------------------
+library(airway)         # An 'ExperimentData' package...
+data(airway)            # ...with a sample data set...
+colData(airway)[, 1:3]  # ...represented as a SummarizedExperiment
+
+## ----airway-assay---------------------------------------------------------------------------------
+head(assay(airway))
+```
+
+
+Below, we perform a differential expression analysis, based on the Negative Binomial distribution, using the `DESeq2` package. This involves estimating size factors and dispersions, as well as fitting and testing the model. We then extract the results and order them from largest to smallest absolute log fold change. Below we present a table illustrating a subset of the results of the model. Among other things we report the p-value and log fold change for each gene.
+
+```{r Analysis}
+## ----airway-toptable------------------------------------------------------------------------------
+library(DESeq2)     # package implementing statistical methods
+dds <-              # data and experimental design
+    DESeqDataSet(airway, design = ~ cell + dex)
+dds <- DESeq(dds)   # initial analysis
+res <- results(dds) # summary results
+ridx <-             # order from largest to smallest absolute log fold change
+    order(abs(res$log2FoldChange), decreasing=TRUE)
+res <- res[ridx,]
+head(res)           # top-table
+```
+
+Below we finally plot the negative logarithmized p-value against the log fold change.
+
+```{r Visualization}
+## ----airway-viz-----------------------------------------------------------------------------------
+library(ggplot2)
+ggplot(as.data.frame(res), 
+       aes(x=log2FoldChange, y=-10 * log10(pvalue))) +
+    geom_point()
+
+## ----airway-mapids--------------------------------------------------------------------------------
+library(org.Hs.eg.db)
+ensid <- head(rownames(res))
+select(org.Hs.eg.db, ensid, c("SYMBOL", "GENENAME"), "ENSEMBL")
+
+## ----shiny-BAMSpector, eval=FALSE-----------------------------------------------------------------
+#  app <- system.file(package="BiocUruguay2015", "BAMSpector")
+#  shiny::runApp(app)
+
+## ----shiny-MAPlotExplorer, eval=FALSE-------------------------------------------------------------
+#  app <- system.file(package="BiocUruguay2015", "MAPlotExplorer")
+#  shiny::runApp(app)
+
+## ----sessionInfo----------------------------------------------------------------------------------
+#sessionInfo()
+```
+
+
+# Question 2
+*In the presented analysis, there are no plots of raw paired data. In the section where the contrasts are defined and the three contrasts. Present the variables versus each other original, log scaled and MAplot for each considered pair both before and after normalization. A cluster analysis is performed on the page but not reported. Present plots and also draw heatmaps.*
