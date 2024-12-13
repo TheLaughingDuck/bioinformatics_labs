@@ -1,0 +1,224 @@
+---
+title: "lab 4"
+author: "Simon Jorstedt"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# Dependencies
+library(GEOquery)
+```
+
+# Question 1
+*Run all the R code and reproduce the graphics. Go carefully through the R code and explain in your words what each step does. HINT Recall what a design/model matrix is from linear regression*
+
+First we load a the data, which comes as a .tar compressed file. We untar it and save it in the directory "data", and do necessary formatting for us to be able to work with the data. This involves formatting it as a dataframe, give the two inherent columns names (Name and FileName), and add a new column; Targets. Then we save the data as a txt.
+
+```{r}
+x <- getGEOSuppFiles("GSE20986")
+
+untar("GSE20986/GSE20986_RAW.tar", exdir = "data")
+
+cels = list.files("data/", pattern = "[gz]")
+sapply(paste("data", cels, sep = "/"), gunzip)
+
+# Format data
+phenodata = matrix(rep(list.files("data"), 2), ncol =2)
+
+phenodata <- as.data.frame(phenodata)
+colnames(phenodata) <- c("Name", "FileName")
+phenodata$Targets <- c("iris", 
+                       "retina", 
+                       "retina", 
+                       "iris", 
+                       "retina", 
+                       "iris", 
+                       "choroid", 
+                       "choroid", 
+                       "choroid", 
+                       "huvec", 
+                       "huvec", 
+                       "huvec")
+write.table(phenodata, "data/phenodata.txt", quote = F, sep = "\t", row.names = F)
+```
+
+Now we proceed to analyse the data with the affy package. First we format the data as an affy file. For this, we will have to create a custom read affy file. Then we construct a boxplot over the modified expression values.
+
+```{r}
+library('affy')
+read.affy = function (covdesc = "covdesc", path = ".", ...)
+{
+    samples <- read.AnnotatedDataFrame(paste(path, covdesc, sep = "/"),
+        sep = "")
+    files.to.read <- rownames(pData(samples))
+    files.to.read <- paste(path, files.to.read, sep = "/")
+    eset <- ReadAffy(filenames = files.to.read, ...)
+    newPhenoData <- cbind(pData(eset), pData(samples)[rownames(pData(eset)),
+        ])
+    colnames(newPhenoData) <- c(colnames(pData(eset)), colnames(pData(samples)))
+    tmp <- as.list(colnames(newPhenoData))
+    names(tmp) <- colnames(newPhenoData)
+    newPhenoData <- as(newPhenoData, "AnnotatedDataFrame")
+    phenoData(eset) <- newPhenoData
+    return(eset)
+}
+
+celfiles <- read.affy(covdesc = "phenodata.txt", path = "data")
+BiocGenerics::boxplot(celfiles)
+```
+
+Then we proceed to create a nicer version of this plot with colours, and all sample names showing below.
+
+```{r}
+library(RColorBrewer)
+cols = brewer.pal(8, "Set1")
+eset <- exprs(celfiles)
+samples <- celfiles$Targets
+
+colnames(eset) <- samples
+
+boxplot(celfiles, col = cols, las = 2)
+```
+
+After this, we move on to create a cluster dendrogram showing the similarities of the different sample cells. This is achieved by first clustering, and then plotting the clusters.
+
+```{r}
+distance <- dist(t(eset), method = "maximum")
+clusters <- hclust(distance)
+plot(clusters)
+```
+
+Now we normalise the data using robust multiarray average expression value. Below we see two plots showing the previous boxplot next to the new normalised version.
+
+```{r}
+require(affy)
+require(affyPLM)
+
+celfiles.gcrma = gcrma(celfiles)
+
+par(mfrow=c(1,2))
+boxplot(celfiles.gcrma, col = cols, las = 2, main = "Post-Normalization");
+boxplot(celfiles, col = cols, las = 2, main = "Pre-Normalization")
+
+dev.off()
+```
+
+
+
+```{r}
+distance <- dist(t(exprs(celfiles.gcrma)), method = "maximum")
+clusters <- hclust(distance)
+plot(clusters)
+```
+
+
+
+
+
+```{r}
+library(limma)
+
+phenodata
+```
+
+
+
+```{r}
+samples <- as.factor(samples)
+design <- model.matrix(~0+samples)
+colnames(design)
+
+
+colnames(design) <- c("choroid", "huvec", "iris", "retina")
+design
+```
+
+
+
+```{r}
+contrast.matrix = makeContrasts(
+              huvec_choroid = huvec - choroid, 
+              huvec_retina = huvec - retina, 
+              huvec_iris <- huvec - iris, 
+              levels = design)
+
+fit = lmFit(celfiles.gcrma, design)
+huvec_fit <- contrasts.fit(fit, contrast.matrix)
+huvec_ebay <- eBayes(huvec_fit)
+
+library(hgu133plus2.db)
+```
+
+
+
+```{r}
+library(annotate)
+
+probenames.list <- rownames(topTable(huvec_ebay, number = 100000))
+getsymbols <- getSYMBOL(probenames.list, "hgu133plus2")
+results <- topTable(huvec_ebay, number = 100000, coef = "huvec_choroid")
+results <- cbind(results, getsymbols)
+
+summary(results)
+```
+
+```{r}
+results$threshold <- "1"
+a <- subset(results, adj.P.Val < 0.05 & logFC > 5)
+results[rownames(a), "threshold"] <- "2"
+b <- subset(results, adj.P.Val < 0.05 & logFC < -5)
+results[rownames(b), "threshold"] <- "3"
+table(results$threshold)
+```
+
+
+
+```{r}
+library(ggplot2)
+volcano <- ggplot(data = results, 
+                  aes(x = logFC, y = -1*log10(adj.P.Val), 
+                      colour = threshold, 
+                      label = getsymbols))
+
+volcano <- volcano + 
+  geom_point() + 
+  scale_color_manual(values = c("black", "red", "green"), 
+                     labels = c("Not Significant", "Upregulated", "Downregulated"), 
+                     name = "Key/Legend")
+
+volcano + 
+  geom_text(data = subset(results, logFC > 5 & -1*log10(adj.P.Val) > 5), aes(x = logFC, y = -1*log10(adj.P.Val), colour = threshold, label = getsymbols)  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
