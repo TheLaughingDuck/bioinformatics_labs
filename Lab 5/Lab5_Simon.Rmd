@@ -1,0 +1,101 @@
+---
+title: "Lab 5_simon"
+author: "Simon Jorstedt"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+# Dependencies
+library(magrittr)
+```
+
+
+# Question 1
+*Go to the webpage http://snap.stanford.edu/biodata/ and choose one of the provided datasets. Download it and reproduce the statistics concerning the graph. If you obtain different values, then discuss this in your report. Visualize the graph. The next step is to try to identify some clusters (communities in the graph). You can follow the tutorial at https://psych-networks.com/r-tutorial-identify-communities-items-networks/ to achieve this. Once you have found some clusters, identify the elements in it and try to nd information on this cluster. Is it related to some known biological phenomena? If you do not nd anything, then document your search attempts. If it will not be possible to do this question on the whole downloaded graph, then you may take some sub-graph of it*
+
+From the provided website we obtain the "SS-Butterfly_weights.tsv.gz" dataset. In the chunk below, we obtain some properties of the dataset. There is some inconsistencies: the website states that there are 832 nodes in the largest SCC, while our calculation below finds that there are 832 individual strongly connected components (one node in each). Curiosly, when `mode = weak`, we achieve one component containing all nodes. This effects all properties related to the SCC. Below are the properties according to the website.
+
+![Apparently true properties](butterfly_statistics.png)
+
+```{r}
+# Load data
+butterfly_weights <- read.table(gzfile("SS-Butterfly_weights.tsv.gz"))
+
+# Number of nodes
+c(butterfly_weights$V1, butterfly_weights$V2) %>% unique() %>% length()
+
+# Number of edges
+nrow(butterfly_weights)
+
+# Finding the components
+graph_1 <- igraph::graph_from_data_frame(butterfly_weights[,c(1,2)], directed = TRUE)
+igraph::components(graph_1, mode="strong")$membership %>% unique() %>% length()
+```
+
+Now we obtain the average clustering coefficient (which matches with the website), the number of triangles, which appears quite ambiguous. The website suggests that there are over 14 million triangles, but even if we count all the triangles for every node and sum them up (triple-counting all triangles), we only achieve about 13 million triangles/triples. In turn, we achieve a different fraction of closed triangles. Also the diameter is different. We also find that all nodes are connected by a path with a most 4 nodes, and so it makes sense that the 90-percentile effective diameter is very low, although the apparently true one is slightly lower.
+
+```{r}
+# Average clustering coefficient
+igraph::transitivity(graph_1, type="average")
+
+# Number of triangles
+igraph::count_triangles(graph_1) %>% sum()
+
+# Fraction of closed triangles
+igraph::transitivity(graph_1, type="global")
+
+# Diameter
+igraph::diameter(graph_1)
+
+# 90 percentile effective diameter
+sp_lengths <- igraph::distances(graph_1)
+quantile(sp_lengths, 0.9)
+```
+
+Below we plot the graph. This not very informative, since there are many nodes that are all quite tightly connected. After that we shall try to find communities in the 
+
+```{r}
+plot(graph_1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
