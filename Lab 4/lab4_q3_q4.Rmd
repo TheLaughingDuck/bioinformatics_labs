@@ -1,0 +1,187 @@
+---
+title: "Untitled"
+output: html_document
+date: "2024-12-13"
+---
+
+# Question 1
+
+*Run all the R code and reproduce the graphics. Go carefully through the R code and explain in your words what each step does. HINT Recall what a design/model matrix is from linear regression*
+
+```{r Setup, message=FALSE, include=FALSE}
+## ----style, echo = FALSE, results = 'asis'--------------------------------------------------------
+BiocStyle::markdown()
+options(width=100, max.print=1000)
+knitr::opts_chunk$set(
+    eval=as.logical(Sys.getenv("KNITR_EVAL", "TRUE")),
+    cache=as.logical(Sys.getenv("KNITR_CACHE", "TRUE")))
+
+## ----setup, echo=FALSE, messages=FALSE, warnings=FALSE--------------------------------------------
+suppressPackageStartupMessages({
+    library(airway)
+    library(DESeq2)
+    library(ggplot2)
+    library(org.Hs.eg.db)
+})
+
+## ----configure-test-------------------------------------------------------------------------------
+#stopifnot(
+#    getRversion() >= '3.2' && getRversion() < '3.3',
+#    BiocInstaller::biocVersion() == "3.2"
+#)
+```
+
+This chunk gives an initial look at the dataset `airway`, which provides expression values in genes on four human airway muscle cell lines treated with a compound. We see that the data is organised as a matrix or assay with 63677 genes along the rows, and 8 different experiments along the columns. What follows below is a section of the assay,
+
+```{r airway_experiment}
+## ----airway-SummarizedExperiment------------------------------------------------------------------
+library(airway)         # An 'ExperimentData' package...
+data(airway)            # ...with a sample data set...
+airway                  # ...that is a SummarizedExperiment
+head(assay(airway))     # contains a matrix of counts
+head(rowRanges(airway)) # information about the genes...
+colData(airway)[, 1:3]  # ...and samples
+## coordinated subsetting
+untrt <- airway[, airway$dex == 'untrt']
+head(assay(untrt))
+colData(untrt)[, 1:3]
+
+## ----airway-colData-------------------------------------------------------------------------------
+library(airway)         # An 'ExperimentData' package...
+data(airway)            # ...with a sample data set...
+colData(airway)[, 1:3]  # ...represented as a SummarizedExperiment
+
+## ----airway-assay---------------------------------------------------------------------------------
+head(assay(airway))
+```
+
+Below, we perform a differential expression analysis, based on the Negative Binomial distribution, using the `DESeq2` package. This involves estimating size factors and dispersions, as well as fitting and testing the model. We then extract the results and order them from largest to smallest absolute log fold change. Below we present a table illustrating a subset of the results of the model. Among other things we report the p-value and log fold change for each gene.
+
+```{r Analysis}
+## ----airway-toptable------------------------------------------------------------------------------
+library(DESeq2)     # package implementing statistical methods
+dds <-              # data and experimental design
+    DESeqDataSet(airway, design = ~ cell + dex)
+dds <- DESeq(dds)   # initial analysis
+res <- results(dds) # summary results
+ridx <-             # order from largest to smallest absolute log fold change
+    order(abs(res$log2FoldChange), decreasing=TRUE)
+res <- res[ridx,]
+head(res)           # top-table
+```
+
+Below we finally plot the negative logarithmized p-value against the log fold change.
+
+```{r Visualization}
+## ----airway-viz-----------------------------------------------------------------------------------
+library(ggplot2)
+ggplot(as.data.frame(res), 
+       aes(x=log2FoldChange, y=-10 * log10(pvalue))) +
+    geom_point()
+
+## ----airway-mapids--------------------------------------------------------------------------------
+library(org.Hs.eg.db)
+ensid <- head(rownames(res))
+select(org.Hs.eg.db, ensid, c("SYMBOL", "GENENAME"), "ENSEMBL")
+
+## ----shiny-BAMSpector, eval=FALSE-----------------------------------------------------------------
+#  app <- system.file(package="BiocUruguay2015", "BAMSpector")
+#  shiny::runApp(app)
+
+## ----shiny-MAPlotExplorer, eval=FALSE-------------------------------------------------------------
+#  app <- system.file(package="BiocUruguay2015", "MAPlotExplorer")
+#  shiny::runApp(app)
+
+## ----sessionInfo----------------------------------------------------------------------------------
+#sessionInfo()
+```
+
+# Question 2
+
+*In the presented analysis, there are no plots of raw paired data. In the section where the contrasts are defined and the three contrasts. Present the variables versus each other original, log scaled and MAplot for each considered pair both before and after normalization. A cluster analysis is performed on the page but not reported. Present plots and also draw heatmaps.*
+
+# Question 3
+
+The volcano plot is only for huvec versus choroid. Provide volcano plots for the other pairs.
+Indicate significantly differentially expressed genes. Explain how they are found.
+
+```{r}
+
+cell1 <- c(rep(levels(dds$cell)[1], 3),
+           rep(levels(dds$cell)[2], 2),
+           rep(levels(dds$cell)[3], 1))
+
+cell2 <- c(levels(dds$cell)[2:4],
+           levels(dds$cell)[3:4],
+           levels(dds$cell)[4:4])
+
+for(i in 1:length(cell1)){
+  
+  temp_res <- results(dds, contrast = c("cell", cell1[i], cell2[i]))
+  ridx <- order(abs(temp_res$log2FoldChange), decreasing=TRUE)
+  temp_res <- temp_res[ridx,]
+  
+ print(ggplot(as.data.frame(temp_res), 
+       aes(x=log2FoldChange, y=-10 * log10(pvalue))) +
+    geom_point()) + ggtitle(paste(cell1[i],"vs",cell2[i]))
+ 
+  
+}
+
+
+
+```
+
+# Question 4
+
+Try to find more information on the genes that are reported to be significantly differentially
+expressed. The place to start off is https://www.ncbi.nlm.nih.gov/gene/, remember that the
+data is from the species human. Try to look also for other databases where (some) information
+on the genes may be found. Try to follow on some of the provided links. Report in your own
+words on what you find.
+
+Report all the Gene Ontology (GO) terms associated with each gene. Are any of the GO
+terms common between genes? If so do the common GO terms seem to be related to anything
+particular? Try to present GO analysis in an informative manner, if possible visualize.
+
+```{r}
+
+significant_genes <- rownames(res)[res$pvalue < 0.05 & abs(res$log2FoldChange) > 2] 
+go <- select(org.Hs.eg.db, significant_genes , c("SYMBOL", "GO"), "ENSEMBL")
+head(go, 10)
+
+
+agg_data <- aggregate(ENSEMBL~GO+ONTOLOGY, data = go, FUN = function(x) length(x > 0) )
+
+
+
+head(agg_data[order(agg_data$ENSEMBL, decreasing = T),],10)
+
+```
+
+Most common GO-term is GO:0005515 which is common between 162 genes.\
+This is the only GO-term in the top 10 most common which corresponds to a molecular function, namely "protein binding".
+
+The rest of the top10 are cellular components as follows:
+
+GO:0005886 - Plasma membrane
+
+GO:0005737 - Cytoplasm
+
+GO:0005829 - Cytosol
+
+GO:0005634 - Nucleus
+
+GO:0005576 - Extracellular region
+
+GO:0005615 - Extracellular space
+
+GO:0005654 - Nucleoplasm
+
+GO:0016020 - Membrane
+
+GO:0070062 - Extracellular exosome
+
+|     |
+|:----|
+|     |
