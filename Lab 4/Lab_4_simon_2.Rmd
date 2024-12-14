@@ -7,7 +7,7 @@ output:
     df_print: paged
 ---
 
-```{r}
+```{r Dependencies}
 # Dependencies
 library(GEOquery)
 ```
@@ -17,37 +17,38 @@ library(GEOquery)
 
 First we load a the data, which comes as a .tar compressed file. We untar it and save it in the directory "data", and do necessary formatting for us to be able to work with the data. This involves formatting it as a dataframe, give the two inherent columns names (Name and FileName), and add a new column; Targets. Then we save the data as a txt.
 
-```{r}
-x <- getGEOSuppFiles("GSE20986")
+```{r Datasetup}
+# This chunk was run once to download and format the data
 
-untar("GSE20986/GSE20986_RAW.tar", exdir = "data")
 
-cels = list.files("data/", pattern = "[gz]")
-sapply(paste("data", cels, sep = "/"), gunzip)
+#x <- getGEOSuppFiles("GSE20986")
+#untar("GSE20986/GSE20986_RAW.tar", exdir = "data")
+#cels = list.files("data/", pattern = "[gz]")
+#sapply(paste("data", cels, sep = "/"), gunzip)
 
 # Format data
-phenodata = matrix(rep(list.files("data"), 2), ncol =2)
+#phenodata = matrix(rep(list.files("data"), 2), ncol =2)
 
-phenodata <- as.data.frame(phenodata)
-colnames(phenodata) <- c("Name", "FileName")
-phenodata$Targets <- c("iris", 
-                       "retina", 
-                       "retina", 
-                       "iris", 
-                       "retina", 
-                       "iris", 
-                       "choroid", 
-                       "choroid", 
-                       "choroid", 
-                       "huvec", 
-                       "huvec", 
-                       "huvec")
-write.table(phenodata, "data/phenodata.txt", quote = F, sep = "\t", row.names = F)
+#phenodata <- as.data.frame(phenodata)
+#colnames(phenodata) <- c("Name", "FileName")
+#phenodata$Targets <- c("iris", 
+#                       "retina", 
+#                       "retina", 
+#                       "iris", 
+#                       "retina", 
+#                       "iris", 
+#                       "choroid", 
+#                       "choroid", 
+#                       "choroid", 
+#                       "huvec", 
+#                       "huvec", 
+#                       "huvec")
+#write.table(phenodata, "data/phenodata.txt", quote = F, sep = "\t", row.names = F)
 ```
 
 Now we proceed to analyse the data with the affy package. First we format the data as an affy file. For this, we will have to create a custom read affy file. Then we construct a boxplot over the modified expression values.
 
-```{r}
+```{r Analyse_with_affy}
 library('affy')
 read.affy = function (covdesc = "covdesc", path = ".", ...)
 {
@@ -72,7 +73,7 @@ BiocGenerics::boxplot(celfiles)
 
 Then we proceed to create a nicer version of this plot with colours, and all sample names showing below.
 
-```{r}
+```{r Better_boxplot}
 library(RColorBrewer)
 cols = brewer.pal(8, "Set1")
 eset <- exprs(celfiles)
@@ -85,15 +86,15 @@ boxplot(celfiles, col = cols, las = 2)
 
 After this, we move on to create a cluster dendrogram showing the similarities of the different sample cells. This is achieved by first clustering, and then plotting the clusters.
 
-```{r}
+```{r Dendrogram_1}
 distance <- dist(t(eset), method = "maximum")
 clusters <- hclust(distance)
 plot(clusters)
 ```
 
-Now we normalise the data using robust multiarray average expression value. Below we see two plots showing the previous boxplot next to the new normalised version.
+Now we normalise the data using robust multiarray average expression value. Below we see two plots showing the previous boxplot next to the new normalised version. After that, we reproduce the cluster dendrogram with the normalised data.
 
-```{r}
+```{r Normalise}
 require(affy)
 require(affyPLM)
 
@@ -108,37 +109,23 @@ dev.off()
 
 
 
-```{r}
+```{r Dendrogram_2}
 distance <- dist(t(exprs(celfiles.gcrma)), method = "maximum")
 clusters <- hclust(distance)
 plot(clusters)
 ```
 
+Now we proceed to create a design matrix (using model.matrix) with dummy variables for the four Targets. Below we see the design matrix. Then we construct a contrast matrix using the `limma` package, and fit a linear model.
 
-
-
-
-```{r}
-library(limma)
-
-phenodata
-```
-
-
-
-```{r}
+```{r Linear_model}
+# Create design matrix
 samples <- as.factor(samples)
 design <- model.matrix(~0+samples)
-colnames(design)
-
-
 colnames(design) <- c("choroid", "huvec", "iris", "retina")
 design
-```
 
-
-
-```{r}
+# Create 
+library(limma)
 contrast.matrix = makeContrasts(
               huvec_choroid = huvec - choroid, 
               huvec_retina = huvec - retina, 
@@ -148,13 +135,12 @@ contrast.matrix = makeContrasts(
 fit = lmFit(celfiles.gcrma, design)
 huvec_fit <- contrasts.fit(fit, contrast.matrix)
 huvec_ebay <- eBayes(huvec_fit)
-
-library(hgu133plus2.db)
 ```
 
+Below we annotate the data, by acquiring the gene symbols, and present the result of the fitted linear model. We then define thresholds for the adjusted p-values, and  the log fold change. They determine when a sample has insignificant expression, is upregulated, or downregulated. After that, we proceed to produce a Volcano plot where we in addition label the gene names of the samples with particularly large adjusted p-value.
 
-
-```{r}
+```{r, message=FALSE}
+library(hgu133plus2.db)
 library(annotate)
 
 probenames.list <- rownames(topTable(huvec_ebay, number = 100000))
