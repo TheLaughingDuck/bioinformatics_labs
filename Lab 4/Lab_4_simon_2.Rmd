@@ -3,6 +3,8 @@ title: "lab 4"
 author: "Simon Jorstedt"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    dev: cairo_pdf
   html_document:
     df_print: paged
 ---
@@ -180,14 +182,35 @@ volcano +
 ```
 
 
+# Question 2
+*In the presented analysis, there are no plots of raw paired data. In the section where the contrasts are defined and the three contrasts. Present the variables versus each other original, log scaled and MAplot for each considered pair both before and after normalization. A cluster analysis is performed on the page but not reported. Present plots and also draw heatmaps.*
 
+We find the instructions quite unclear, but at least here are plots for the paired contrasts, for original and normalised data. We find it unclear which particular logarithmised values we should compare (some values in huvec_fit$coefficients are negative), whether we are expected to do some form of cluster analysis, and what precisely should be plotted in the the heatmap(s).
 
+```{r}
+# Set up data
+fit_orig <- lmFit(celfiles, design)
+huvec_fit_orig <- contrasts.fit(fit_orig, contrast.matrix)
+data_q2_orig <- data.frame(huvec_fit_orig$coefficients)
+colnames(data_q2_orig) <- c("huv_cho", "huv_ret", "huv_iri")
 
+fit_norm <- lmFit(celfiles.gcrma, design)
+huvec_fit_norm <- contrasts.fit(fit_norm, contrast.matrix)
+data_q2_norm <- data.frame(huvec_fit_norm$coefficients)
+colnames(data_q2_norm) <- c("huv_cho", "huv_ret", "huv_iri")
 
+# Normal data plots
+## Original data
+plot(data_q2_orig)
+## log-scaled data
+## MA-plot
 
-
-
-
+# Normalised data plots
+## Original data
+plot(data_q2_norm)
+## log-scaled data
+## MA-plot
+```
 
 
 
