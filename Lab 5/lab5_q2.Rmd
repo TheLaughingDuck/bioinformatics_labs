@@ -1,0 +1,156 @@
+---
+title: "Lab5"
+output: pdf_document
+date: "2024-12-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## Question 2
+
+Recreate one of the three analyses that can be found on <https://strimmerlab.github.io/> software/genenet/index.html. Document and discuss all your steps. In the analyses there is the step where you select the edges to keep. There a particular criterion is chosen for edge inclusion. Vary this criterion and explore how the resulting clusters will differ with the changes. Take one found cluster, identify the elements in it and try to find information on this cluster. Is it related to some known biological phenomena? If you do not find anything, then document your search attempts.
+
+## Analysis chosen: E.coli
+
+```{r}
+#Loading the package
+library("GeneNet")
+library("Rgraphviz")
+#BiocManager::install("org.EcK12.eg.db")
+library(org.EcK12.eg.db)
+
+#Loading the ecoli-data
+data(ecoli)
+#Displaying 9 observations as time points with 102 genes. 
+dim(ecoli)
+
+#Using shrinkage estimator to produce a matrix of partial correlation between genes
+pc = ggm.estimate.pcor(ecoli)
+#The covariance matrix of 102 genes
+dim(pc)
+
+#Estimating q-values (fdr = TRUE) and additional statistics (direct = TRUE)
+ecoli.edges = network.test.edges(pc, direct=TRUE, fdr=TRUE)
+#With 102 genes, we have 5151 potenial pairings of genes, meaning 5151 edges in the network 
+dim(ecoli.edges)
+
+
+
+
+```
+
+### FDR cutoff 0.2
+
+```{r}
+ecoli.net = extract.network(ecoli.edges)
+
+node.labels = colnames(ecoli)
+gr = network.make.graph(ecoli.net, node.labels, drop.singles=TRUE)
+table(  edge.info(gr)$dir )
+sort( node.degree(gr), decreasing=TRUE)
+
+
+#' Set node and edge attributes for more beautiful graph plotting:
+globalAttrs = list()
+globalAttrs$edge = list(color = "black", lty = "solid", lwd = 1, arrowsize=1)
+globalAttrs$node = list(fillcolor = "lightblue", shape = "ellipse", fixedsize = FALSE)
+ 
+nodeAttrs = list()
+nodeAttrs$fillcolor = c('sucA' = "yellow")
+
+edi = edge.info(gr)
+edgeAttrs = list()
+edgeAttrs$dir = edi$dir # set edge directions 
+edgeAttrs$lty = ifelse(edi$weight < 0, "dotted", "solid") # negative correlation -> dotted
+edgeAttrs$color = ifelse(edi$dir == "none", "black", "red")
+edgeAttrs$label = round(edi$weight, 2) # use partial correlation as edge labels
+
+#+ fig.width=8, fig.height=7
+plot(gr, attrs = globalAttrs, nodeAttrs = nodeAttrs, edgeAttrs = edgeAttrs, "fdp")
+```
+
+```{r}
+cluster_desc <- select(org.EcK12.eg.db, keys = c("sucA", "atpC", "sodA", "gltA", "dnaJ", "gatD", "atpH", "sucD", "flgD", "manX"), columns = "GENENAME", keytype = "ALIAS")
+```
+
+The cluster has multiple genes which plays a part in ATP synthesis and citric acid cycle.
+
+### FDR cutoff 0.1
+
+```{r}
+ecoli.net = extract.network(ecoli.edges, cutoff.ggm=0.9, cutoff.dir=0.9)
+
+node.labels = colnames(ecoli)
+gr = network.make.graph(ecoli.net, node.labels, drop.singles=TRUE)
+table(  edge.info(gr)$dir )
+sort( node.degree(gr), decreasing=TRUE)
+
+
+#' Set node and edge attributes for more beautiful graph plotting:
+globalAttrs = list()
+globalAttrs$edge = list(color = "black", lty = "solid", lwd = 1, arrowsize=1)
+globalAttrs$node = list(fillcolor = "lightblue", shape = "ellipse", fixedsize = FALSE)
+ 
+nodeAttrs = list()
+nodeAttrs$fillcolor = c('sucA' = "yellow")
+
+edi = edge.info(gr)
+edgeAttrs = list()
+edgeAttrs$dir = edi$dir # set edge directions 
+edgeAttrs$lty = ifelse(edi$weight < 0, "dotted", "solid") # negative correlation -> dotted
+edgeAttrs$color = ifelse(edi$dir == "none", "black", "red")
+edgeAttrs$label = round(edi$weight, 2) # use partial correlation as edge labels
+
+#+ fig.width=8, fig.height=7
+plot(gr, attrs = globalAttrs, nodeAttrs = nodeAttrs, edgeAttrs = edgeAttrs, "fdp")
+```
+
+```{r}
+select(org.EcK12.eg.db, keys = c("sucA", "tnaA", "flgD", "sucD", "gltA", "atpG", "yhdM", "dnaJ", "yfaD"), columns = "GENENAME", keytype = "ALIAS")
+
+select(org.EcK12.eg.db, keys = c("yheI", "ycgX","dnaG","folK","dnaK","b1963","yedE","atpD"), columns = "GENENAME", keytype = "ALIAS")
+```
+
+The first cluster is similar to the 0.2-cutoff and has multiple genes which plays a part in APT synthesis and citric acid cycle.
+
+The second cluster does not seem to be related to any obvious common biological phenomenon.
+
+### 70 stronges edges 
+
+```{r}
+ecoli.net = extract.network(ecoli.edges, method.ggm="number", cutoff.ggm=70)
+
+node.labels = colnames(ecoli)
+gr = network.make.graph(ecoli.net, node.labels, drop.singles=TRUE)
+table(  edge.info(gr)$dir )
+sort( node.degree(gr), decreasing=TRUE)
+
+
+#' Set node and edge attributes for more beautiful graph plotting:
+globalAttrs = list()
+globalAttrs$edge = list(color = "black", lty = "solid", lwd = 1, arrowsize=1)
+globalAttrs$node = list(fillcolor = "lightblue", shape = "ellipse", fixedsize = FALSE)
+ 
+nodeAttrs = list()
+nodeAttrs$fillcolor = c('sucA' = "yellow")
+
+edi = edge.info(gr)
+edgeAttrs = list()
+edgeAttrs$dir = edi$dir # set edge directions 
+edgeAttrs$lty = ifelse(edi$weight < 0, "dotted", "solid") # negative correlation -> dotted
+edgeAttrs$color = ifelse(edi$dir == "none", "black", "red")
+edgeAttrs$label = round(edi$weight, 2) # use partial correlation as edge labels
+
+#+ fig.width=8, fig.height=7
+plot(gr, attrs = globalAttrs, nodeAttrs = nodeAttrs, edgeAttrs = edgeAttrs, "fdp")
+```
+
+```{r}
+select(org.EcK12.eg.db, keys = c("sucA", "ygcE","sucD","atpG","dnaJ","gltA","flgD","yhdM","yfaD","fnaA"), columns = "GENENAME", keytype = "ALIAS")
+
+```
+
+The cluster is similar to the 0.2-cutoff and 0.1-cutoff and has multiple genes which plays a part in APT synthesis and citric acid cycle.
